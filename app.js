@@ -39,6 +39,26 @@ const productosVerduras = [
   { id:'tomate', nombre:'Tomate', precio:3.20, unidad:'kilo', img:'https://images.ctfassets.net/hxvgiqj2m8qf/4pHqxxBZ4s9LxrPdXC1Dcf/9b04e86a6e72966932614ab6a9c41110/MITOS_TOMATE.jpg', stock:70 }
 ];
 
+// ---------- Diccionario de sinónimos para productos ----------
+const sinonimosProductos = {
+  'Arroz integral': ['arroz', 'arroz integral', 'rice', 'arros'],
+  'Quinua': ['quinua', 'quinoa', 'quinua', 'kinua'],
+  'Avena': ['avena', 'oat', 'avena', 'avenas'],
+  'Lentejas': ['lentejas', 'lentils', 'lenteja', 'lentejas'],
+  'Frijoles': ['frijoles', 'beans', 'frijol', 'frijoles', 'porotos'],
+  'Manzana': ['manzana', 'apple', 'poma', 'manzanas'],
+  'Plátano': ['platano', 'banana', 'plátano', 'banano', 'platano'],
+  'Mango': ['mango', 'mango'],
+  'Fresa': ['fresa', 'strawberry', 'fresa', 'fresas', 'frutilla'],
+  'Uvas': ['uva', 'grapes', 'uvas', 'uva'],
+  'Piña': ['pina', 'pineapple', 'piña', 'anana'],
+  'Lechuga': ['lechuga', 'lettuce', 'lechuga'],
+  'Espinaca': ['espinaca', 'spinach', 'espinaca', 'espinacas'],
+  'Zanahoria': ['zanahoria', 'carrot', 'zanahoria', 'zanahorias'],
+  'Brócoli': ['brocoli', 'broccoli', 'brócoli', 'brocolis'],
+  'Tomate': ['tomate', 'tomato', 'tomate', 'tomates']
+};
+
 // ---------- Estado / persistencia ----------
 let carrito = JSON.parse(localStorage.getItem('ec_cart') || '[]');
 let cuponGenerado = localStorage.getItem('ec_coupon') || null;
@@ -546,6 +566,87 @@ function volverDesdeOffcanvas() {
   setTimeout(()=> window.scrollTo({ top: 0, behavior: 'smooth' }), 200);
 }
 
+// ---------- Voice functions ----------
+let recognition;
+let listeningForCommand = false;
+let lastClick = 0;
+
+function findProductBySynonym(syn) {
+  syn = syn.toLowerCase().trim();
+  for (let nombre in sinonimosProductos) {
+    if (sinonimosProductos[nombre].includes(syn)) {
+      const all = [...productosGranos, ...productosLegumbres, ...productosFrutas, ...productosVerduras];
+      return all.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
+    }
+  }
+  return null;
+}
+
+function parseAndAdd(transcript) {
+  // Extract quantity
+  const qtyMatch = transcript.match(/\d+/);
+  const qty = qtyMatch ? parseInt(qtyMatch[0]) : 1;
+  // Extract product: remove numbers and common words
+  let product = transcript.replace(/\d+/g, '').replace(/\b(agrega|añade|quiero|de|del|la|el|kilo|unidad|kilos|unidades|atado|atados|diego|baris)\b/g, '').trim();
+  const prod = findProductBySynonym(product);
+  if (prod) {
+    addToCartVoice(prod.id, qty);
+    showToast(`Agregado ${qty} de ${prod.nombre}`, 'success');
+  } else {
+    showToast('Producto no reconocido. Intenta decir el nombre exacto.', 'error');
+  }
+}
+
+function addToCartVoice(id, cantidad) {
+  const prod = findProductById(id);
+  if (!prod) return;
+  if (cantidad > prod.stock) {
+    showToast('No hay suficiente stock', 'error');
+    return;
+  }
+  const existe = carrito.find(it => it.id === id);
+  if (existe) {
+    if (existe.cantidad + cantidad > prod.stock) {
+      showToast('No hay suficiente stock para esa suma', 'error');
+      return;
+    }
+    existe.cantidad += cantidad;
+    existe.subtotal = Number((existe.cantidad * existe.precio).toFixed(2));
+  } else {
+    carrito.push({ id: prod.id, nombre: prod.nombre, precio: prod.precio, unidad: prod.unidad, cantidad: cantidad, subtotal: Number((cantidad * prod.precio).toFixed(2)) });
+  }
+  persistCart();
+  actualizarUI();
+  animateCartBadge();
+}
+
+function startVoiceRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    showToast('Reconocimiento de voz no soportado', 'error');
+    return;
+  }
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  recognition.lang = 'es-ES';
+  recognition.onresult = (event) => {
+    const transcript = event.results[event.results.length - 1][0].transcript;
+    parseAndAdd(transcript);
+  };
+  recognition.onerror = (event) => {
+    showToast('Error en reconocimiento: ' + event.error, 'error');
+  };
+  recognition.onend = () => {
+    if (listeningForCommand) {
+      recognition.start();
+    }
+  };
+  listeningForCommand = true;
+  recognition.start();
+  showToast('Escuchando comandos de voz...', 'info');
+}
+
 // ---------- Init ----------
 document.addEventListener('DOMContentLoaded', () => {
   // restore coupon/discount from localStorage (si aplica)
@@ -609,11 +710,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (navCollapseEl) { const bsCollapse = bootstrap.Collapse.getInstance(navCollapseEl) || new bootstrap.Collapse(navCollapseEl); bsCollapse.hide(); }
       } catch (e) { /* no pasa nada */ }
       const f = document.getElementById('floatingCart'); if (f) f.style.display = 'none';
+      const v = document.getElementById('floatingVoice'); if (v) v.style.display = 'none';
       document.body.style.paddingRight = '0px';
       document.body.classList.add('hide-location');
     });
     offEl.addEventListener('hidden.bs.offcanvas', () => {
       const f = document.getElementById('floatingCart'); if (f) f.style.display = 'flex';
+      const v = document.getElementById('floatingVoice'); if (v) v.style.display = 'flex';
       document.body.style.paddingRight = '';
       setTimeout(()=> {
         const anyOff = Array.from(document.querySelectorAll('.offcanvas.show')).length > 0;
@@ -640,5 +743,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const floatBtn = document.getElementById('floatingCart');
   if (floatBtn) {
     floatBtn.addEventListener('click', (e) => { e.preventDefault(); abrirCarrito(); });
+  }
+
+  // bind voice button
+  const voiceBtn = document.getElementById('floatingVoice');
+  if (voiceBtn) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      voiceBtn.innerHTML = '🎙️';
+      voiceBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (listeningForCommand) {
+          recognition.stop();
+          listeningForCommand = false;
+          showToast('Reconocimiento detenido', 'info');
+        } else {
+          startVoiceRecognition();
+        }
+      });
+    } else {
+      voiceBtn.style.display = 'none';
+    }
   }
 });
