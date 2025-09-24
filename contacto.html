@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>EcoMarket — Contacto</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Background Video -->
+  <video class="background-video" autoplay muted loop playsinline>
+    <source src="12.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
+  <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center" href="index.html">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRIW_Tubh72LhyHYYmS3kOf2aB05TqzI6382w&s" width="40" height="40" class="me-2 rounded">
+        EcoMarket
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain4">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navMain4">
+        <ul class="navbar-nav ms-3 me-auto mb-2 mb-lg-0">
+          <li class="nav-item"><a class="nav-link" href="index.html">Inicio</a></li>
+          <li class="nav-item"><a class="nav-link" href="productos.html">Productos</a></li>
+          <li class="nav-item"><a class="nav-link" href="nosotros.html">Nosotros</a></li>
+          <li class="nav-item"><a class="nav-link active" href="contacto.html">Contacto</a></li>
+        </ul>
+
+        <div class="d-flex align-items-center">
+          <button class="btn btn-outline-light position-relative nav-cart-btn" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCart" aria-label="Abrir carrito" title="Tu carrito">
+            <img src="https://i.postimg.cc/zXcHJGN1/4.png" alt="Icono carrito" class="nav-cart-img" style="width:28px;height:28px;object-fit:contain;">
+            <span id="cartCount" class="cart-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container my-5">
+    <h3 style="color: black; font-weight: bold; background-color: white; padding: 10px; border-radius: 8px; display: inline-block;">Contacto</h3>
+
+    <div class="card p-4">
+      <form id="contactForm" onsubmit="event.preventDefault(); enviarContacto();" novalidate>
+        <div class="row g-3">
+          <div class="col-md-4"><input id="contactName" class="form-control" placeholder="Nombre" required></div>
+          <div class="col-md-4"><input id="contactEmail" type="email" class="form-control" placeholder="Correo" required></div>
+          <div class="col-md-4"><input id="contactPhone" class="form-control" placeholder="Teléfono (opcional)"></div>
+          <div class="col-12"><textarea id="contactMessage" class="form-control" rows="4" placeholder="Tu mensaje..." required></textarea></div>
+          <div class="col-12 text-end"><button class="btn btn-success" type="submit">Enviar</button></div>
+        </div>
+      </form>
+    </div>
+
+    <section class="mt-4" style="background-color: white; padding: 20px; border-radius: 8px;">
+      <h5 style="color: black; font-weight: bold;">Horario de atención</h5>
+      <p class="small text-muted" style="color: black; font-weight: bold;">Lun - Vie: 9:00 - 19:00 · Sáb: 9:00 - 14:00</p>
+    </section>
+  </main>
+
+  <footer class="site-footer" style="background-color: var(--dark-green);">
+    <div class="container text-center py-3" style="color: white;">© 2025 EcoMarket</div>
+  </footer>
+
+  <!-- Offcanvas Cart -->
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasCart">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title d-flex align-items-center">
+        <img src="https://i.postimg.cc/zXcHJGN1/4.png" alt="Carrito" style="width:48px;height:48px;margin-right:8px;border-radius:8px;object-fit:contain;"> Tu carrito
+      </h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column">
+      <div id="cartItems" class="mb-3">
+        <p class="text-muted">No hay productos en el carrito.</p>
+      </div>
+
+      <div class="mt-auto border-top pt-3">
+        <div class="d-flex justify-content-between"><div>Subtotal</div><div>S/ <span id="cartSubtotal">0.00</span></div></div>
+        <div class="d-flex justify-content-between"><div>Envío</div><div>S/ <span id="envioDisplay">5.00</span></div></div>
+        <div class="d-flex justify-content-between"><div>Descuento</div><div>- S/ <span id="descuentoDisplay">0.00</span></div></div>
+        <hr>
+        <div class="d-flex justify-content-between fw-bold"><div>Total</div><div>S/ <span id="totalDisplay">0.00</span></div></div>
+
+        <div class="mt-3 d-flex gap-2">
+          <button class="btn btn-outline-danger flex-grow-1" onclick="vaciarCarritoConfirm()">Vaciar carrito</button>
+          <button class="btn btn-success flex-grow-1" onclick="irAFinalizar()">Finalizar compra</button>
+        </div>
+        <div class="mt-2 d-flex gap-2">
+          <button class="btn btn-sm btn-secondary" onclick="downloadVoucherTxt()">Descargar Voucher</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating cart (visible en móviles/desktop) -->
+  <button id="floatingCart" class="position-fixed d-flex align-items-center" style="right:16px;bottom:16px;border-radius:50px;padding:10px 12px;background:#198754;color:#fff;border:none;box-shadow:0 6px 18px rgba(0,0,0,0.15);">
+    <img id="cartIconTop" src="https://i.postimg.cc/zXcHJGN1/4.png" alt="Carrito" style="width:28px;height:28px;object-fit:contain;margin-right:8px;">
+    <span id="floatingCartCount" class="badge bg-danger rounded-pill">0</span>
+  </button>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="shop.js"></script>
+
+  <script>
+    // Manejo del envío del formulario de contacto (simple)
+    function enviarContacto() {
+      const name = document.getElementById('contactName').value.trim();
+      const email = document.getElementById('contactEmail').value.trim();
+      const message = document.getElementById('contactMessage').value.trim();
+      if (!name || !email || !message) {
+        // showToast viene de shop.js
+        if (typeof showToast === 'function') showToast('Completa todos los campos requeridos', 'error');
+        else alert('Completa todos los campos requeridos');
+        return;
+      }
+
+      // Aquí puedes integrar envío real (API, correo, etc.). Por ahora solo mostramos confirmación
+      if (typeof showToast === 'function') showToast('Mensaje enviado. Responderemos pronto.', 'success');
+
+      // opcional: guardar en localStorage (historial de mensajes)
+      try {
+        const history = JSON.parse(localStorage.getItem('ec_contact_history') || '[]');
+        history.push({ nombre: name, email: email, telefono: document.getElementById('contactPhone').value.trim(), mensaje: message, fecha: new Date().toLocaleString() });
+        localStorage.setItem('ec_contact_history', JSON.stringify(history));
+      } catch (e) { /* no crítico */ }
+
+      // resetear formulario
+      document.getElementById('contactForm').reset();
+    }
+
+    // Aseguramos que el botón flotante abra el offcanvas (por si shop.js no lo inicializó)
+    document.getElementById('floatingCart')?.addEventListener('click', (e) => { e.preventDefault(); abrirCarrito(); });
+  </script>
+</body>
+</html>
