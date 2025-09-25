@@ -290,50 +290,70 @@ function showDetails(id) {
 // ---------- Buscar ----------
 function buscarProductos() {
   const q = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
-  // reset grids
-  const g = document.getElementById('granosGrid');
-  const l = document.getElementById('legumbresGrid');
-  const f = document.getElementById('frutasGrid');
-  const v = document.getElementById('verdurasGrid');
-  if (g) g.innerHTML = '';
-  if (l) l.innerHTML = '';
-  if (f) f.innerHTML = '';
-  if (v) v.innerHTML = '';
+  const main = document.querySelector('main');
+  const h1 = main?.querySelector('h1');
+  const sections = main?.querySelectorAll('section.mb-4');
   const all = [...productosGranos, ...productosLegumbres, ...productosFrutas, ...productosVerduras];
+
+  // Remove previous search results or no-results section
+  const prevSearchSection = document.getElementById('searchResultsSection');
+  if (prevSearchSection) prevSearchSection.remove();
+  const prevNoResultsSection = document.getElementById('noResultsSection');
+  if (prevNoResultsSection) prevNoResultsSection.remove();
+  const prevNoMsg = document.getElementById('noResultsMsg');
+  if (prevNoMsg) prevNoMsg.remove();
+
   if (!q) {
+    // Restore full catalog
+    if (sections) sections.forEach(s => s.style.display = 'block');
+    if (h1) h1.innerText = 'Catálogo completo';
     renderCatalogos();
-    const noMsg = document.getElementById('noResultsMsg');
-    if (noMsg) noMsg.remove();
     return;
   }
+
+  // Hide category sections
+  if (sections) sections.forEach(s => s.style.display = 'none');
+
+  // Change title to search results
+  if (h1) h1.innerText = 'Resultados de búsqueda';
+
   const results = all.filter(p => {
     const name = p.nombre.toLowerCase();
     if (name.includes(q)) return true;
     const syns = sinonimosProductos[p.nombre] || [];
     return syns.some(s => s.toLowerCase().includes(q));
   });
-  let noMsg = document.getElementById('noResultsMsg');
-  if (noMsg) noMsg.remove();
+
   if (results.length === 0) {
-    const gridParent = document.querySelector('main');
-    if (gridParent) {
-      const msg = document.createElement('div');
-      msg.id = 'noResultsMsg';
-      msg.className = 'no-results';
-      msg.innerText = '⚠️ No se encontró';
-      gridParent.insertBefore(msg, gridParent.querySelector('section') || null);
-    }
+    // Create no results section
+    const noResultsSection = document.createElement('section');
+    noResultsSection.id = 'noResultsSection';
+    noResultsSection.className = 'mb-4';
+    noResultsSection.innerHTML = `
+      <div class="text-center py-5">
+        <h5>⚠️ No se encontraron productos</h5>
+        <p class="text-muted">Intenta con otro término de búsqueda.</p>
+      </div>
+    `;
+    if (h1 && main) main.insertBefore(noResultsSection, h1.nextSibling);
     return;
   }
-  // distribute results to categories
-  results.forEach(r => {
-    if (productosGranos.some(p=>p.id===r.id)) { if (g) g.appendChild(crearCard(r)); }
-    if (productosLegumbres.some(p=>p.id===r.id)) { if (l) l.appendChild(crearCard(r)); }
-    if (productosFrutas.some(p=>p.id===r.id)) { if (f) f.appendChild(crearCard(r)); }
-    if (productosVerduras.some(p=>p.id===r.id)) { if (v) v.appendChild(crearCard(r)); }
-  });
 
-  setupScrollReveal();
+  // Create unified results section
+  const resultsSection = document.createElement('section');
+  resultsSection.id = 'searchResultsSection';
+  resultsSection.className = 'mb-4';
+  resultsSection.innerHTML = `
+    <h4 style="color: black; font-weight: bold;">Resultados de búsqueda (${results.length})</h4>
+    <div class="row g-3" id="searchResultsGrid"></div>
+  `;
+  if (h1 && main) main.insertBefore(resultsSection, h1.nextSibling);
+
+  const searchGrid = document.getElementById('searchResultsGrid');
+  if (searchGrid) {
+    results.forEach(r => searchGrid.appendChild(crearCard(r)));
+    setupScrollReveal();
+  }
 }
 
 // ---------- Voucher / Pedido ----------
