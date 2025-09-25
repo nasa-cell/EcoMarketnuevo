@@ -25,15 +25,15 @@ const productosLegumbres = [
 ];
 const productosFrutas = [
   { id:'manzana', nombre:'Manzana', precio:3.50, unidad:'kilo', img:'https://chilebio.cl/wp-content/uploads/2019/12/manzana-tono.jpg', stock:100 },
-  { id:'platano', nombre:'Plátano', precio:2.00, unidad:'unidad', img:'https://5aldia.cl/wp-content/uploads/2018/03/platano.jpg', stock:100 },
+  { id:'platano', nombre:'Plátano', precio:2.00, unidad:'kilo', img:'https://5aldia.cl/wp-content/uploads/2018/03/platano.jpg', stock:100 },
   { id:'mango', nombre:'Mango', precio:5.00, unidad:'kilo', img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQU4CZvzYB5vVpOl41ZWMaEuFjf57djb_rg_g&s', stock:50 },
   { id:'fresa', nombre:'Fresa', precio:6.50, unidad:'kilo', img:'https://dialprix.es/wp-content/uploads/fresas.jpg', stock:40 },
   { id:'uva', nombre:'Uvas', precio:7.00, unidad:'kilo', img:'https://fundaciondelcorazon.com/images/stories/corazon-facil/impulso-vital/uvas.jpg', stock:30 },
-  { id:'pina', nombre:'Piña', precio:4.00, unidad:'unidad', img:'https://www.gob.mx/cms/uploads/image/file/415269/pi_a_1.jpg', stock:20 }
+  { id:'pina', nombre:'Piña', precio:4.00, unidad:'kilo', img:'https://www.gob.mx/cms/uploads/image/file/415269/pi_a_1.jpg', stock:20 }
 ];
 const productosVerduras = [
   { id:'lechuga', nombre:'Lechuga', precio:2.50, unidad:'unidad', img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTjXoBuEF8OUHpRTor89ltF5_XBr4lLkH2bMg&s', stock:50 },
-  { id:'espinaca', nombre:'Espinaca', precio:3.00, unidad:'atado', img:'https://www.gob.mx/cms/uploads/article/main_image/11271/espinass.jpg', stock:50 },
+  { id:'espinaca', nombre:'Espinaca', precio:3.00, unidad:'kilo', img:'https://www.gob.mx/cms/uploads/article/main_image/11271/espinass.jpg', stock:50 },
   { id:'zanahoria', nombre:'Zanahoria', precio:3.50, unidad:'kilo', img:'https://libera.pe/wp-content/uploads/2019/12/zanahoria.jpg', stock:60 },
   { id:'brocoli', nombre:'Brócoli', precio:4.00, unidad:'kilo', img:'https://agroactivocol.com/wp-content/uploads/2020/07/Brocoli-Mediterraneo-1-1.jpg', stock:40 },
   { id:'tomate', nombre:'Tomate', precio:3.20, unidad:'kilo', img:'https://images.ctfassets.net/hxvgiqj2m8qf/4pHqxxBZ4s9LxrPdXC1Dcf/9b04e86a6e72966932614ab6a9c41110/MITOS_TOMATE.jpg', stock:70 }
@@ -41,7 +41,7 @@ const productosVerduras = [
 
 // ---------- Diccionario de sinónimos para productos ----------
 const sinonimosProductos = {
-  'Arroz integral': ['arroz', 'arroz integral', 'rice', 'arros'],
+  'Arroz integral': ['arroz', 'arroz integral', 'rice', 'arros', 'integral'],
   'Quinua': ['quinua', 'quinoa', 'quinua', 'kinua'],
   'Avena': ['avena', 'oat', 'avena', 'avenas'],
   'Lentejas': ['lentejas', 'lentils', 'lenteja', 'lentejas'],
@@ -108,6 +108,18 @@ function crearCard(producto) {
   return col;
 }
 
+function setupScrollReveal() {
+  const cards = document.querySelectorAll('.product-card');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('reveal');
+      }
+    });
+  }, { threshold: 0.1 });
+  cards.forEach(card => observer.observe(card));
+}
+
 function renderCatalogos() {
   const g = document.getElementById('granosGrid');
   const l = document.getElementById('legumbresGrid');
@@ -121,6 +133,7 @@ function renderCatalogos() {
   productosLegumbres.forEach(p => l && l.appendChild(crearCard(p)));
   productosFrutas.forEach(p => f && f.appendChild(crearCard(p)));
   productosVerduras.forEach(p => v && v.appendChild(crearCard(p)));
+  setupScrollReveal();
 }
 
 // ---------- Carrito ----------
@@ -293,7 +306,12 @@ function buscarProductos() {
     if (noMsg) noMsg.remove();
     return;
   }
-  const results = all.filter(p => p.nombre.toLowerCase().includes(q));
+  const results = all.filter(p => {
+    const name = p.nombre.toLowerCase();
+    if (name.includes(q)) return true;
+    const syns = sinonimosProductos[p.nombre] || [];
+    return syns.some(s => s.toLowerCase().includes(q));
+  });
   let noMsg = document.getElementById('noResultsMsg');
   if (noMsg) noMsg.remove();
   if (results.length === 0) {
@@ -314,6 +332,8 @@ function buscarProductos() {
     if (productosFrutas.some(p=>p.id===r.id)) { if (f) f.appendChild(crearCard(r)); }
     if (productosVerduras.some(p=>p.id===r.id)) { if (v) v.appendChild(crearCard(r)); }
   });
+
+  setupScrollReveal();
 }
 
 // ---------- Voucher / Pedido ----------
@@ -571,11 +591,15 @@ let recognition;
 let listeningForCommand = false;
 let lastClick = 0;
 
-function findProductBySynonym(syn) {
-  syn = syn.toLowerCase().trim();
+function findProductBySynonym(words) {
+  if (!words || words.length === 0) return null;
+
+  const all = [...productosGranos, ...productosLegumbres, ...productosFrutas, ...productosVerduras];
+
   for (let nombre in sinonimosProductos) {
-    if (sinonimosProductos[nombre].includes(syn)) {
-      const all = [...productosGranos, ...productosLegumbres, ...productosFrutas, ...productosVerduras];
+    const syns = sinonimosProductos[nombre].map(s => s.toLowerCase());
+    const allWordsInSyns = words.every(word => syns.some(syn => syn.includes(word)));
+    if (allWordsInSyns) {
       return all.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
     }
   }
@@ -588,7 +612,8 @@ function parseAndAdd(transcript) {
   const qty = qtyMatch ? parseInt(qtyMatch[0]) : 1;
   // Extract product: remove numbers and common words
   let product = transcript.replace(/\d+/g, '').replace(/\b(agrega|añade|quiero|de|del|la|el|kilo|unidad|kilos|unidades|atado|atados|diego|baris)\b/g, '').trim();
-  const prod = findProductBySynonym(product);
+  const words = product.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+  const prod = findProductBySynonym(words);
   if (prod) {
     addToCartVoice(prod.id, qty);
     showToast(`Agregado ${qty} de ${prod.nombre}`, 'success');
