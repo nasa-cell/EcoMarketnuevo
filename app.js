@@ -63,6 +63,8 @@ const sinonimosProductos = {
 let carrito = JSON.parse(localStorage.getItem('ec_cart') || '[]');
 let cuponGenerado = localStorage.getItem('ec_coupon') || null;
 let descuento = Number(localStorage.getItem('ec_discount') || '0');
+let lastVoucherText = null;
+let lastPedidoNum = null;
 const qtyOptions = [0,1,2,3,5,10];
 
 // ---------- Reviews ----------
@@ -250,8 +252,15 @@ function calcularSubtotal() {
 function actualizarTotales() {
   const subtotal = calcularSubtotal();
   const envio = subtotal > 0 ? 5 : 0;
-  // si subtotal cae por debajo de 90, invalidamos cupón
-  if (subtotal < 90) {
+  const descuentoAnterior = descuento;
+  // Aplicar descuento automáticamente si subtotal >= 90
+  if (subtotal >= 90) {
+    if (!cuponGenerado) {
+      const codigo = Math.floor(100 + Math.random() * 900); // 3 dígitos
+      cuponGenerado = `#${codigo}`;
+    }
+    descuento = 10;
+  } else {
     cuponGenerado = null;
     descuento = 0;
     localStorage.removeItem('ec_coupon');
@@ -266,6 +275,10 @@ function actualizarTotales() {
   if (document.getElementById('totalDisplay')) document.getElementById('totalDisplay').innerText = total.toFixed(2);
   if (cuponGenerado) localStorage.setItem('ec_coupon', cuponGenerado);
   localStorage.setItem('ec_discount', String(descuento));
+  // Notificar si se aplicó el descuento
+  if (descuento === 10 && descuentoAnterior !== 10) {
+    showToast(`🎉 Descuento aplicado: S/10 - Cupón ${cuponGenerado}`, 'success');
+  }
 }
 
 // ---------- Detalles ----------
@@ -388,6 +401,15 @@ function buildVoucherText(cliente) {
 }
 
 function downloadVoucherTxt() {
+  if (lastVoucherText && lastPedidoNum) {
+    const blob = new Blob([lastVoucherText], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `pedido_${lastPedidoNum}.txt`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    return;
+  }
   const cliente = {
     nombre: document.getElementById('clienteNombre')?.value || '-',
     telefono: document.getElementById('clienteTelefono')?.value || '-',
@@ -416,6 +438,8 @@ function submitOrder() {
   }
   const cliente = { nombre, telefono, direccion };
   const v = buildVoucherText(cliente);
+  lastVoucherText = v.text;
+  lastPedidoNum = v.pedidoNum;
   // mostrar voucher
   if (document.getElementById('voucherContent')) document.getElementById('voucherContent').innerText = v.text;
   if (document.getElementById('voucherSection')) document.getElementById('voucherSection').style.display = 'block';
@@ -491,6 +515,7 @@ function openCommentsModal() {
 // ---------- Coupon logic ----------
 function generarCuponSiCorresponde() {
   const subtotal = calcularSubtotal();
+  const envio = subtotal > 0 ? 5 : 0;
   if (subtotal >= 90) {
     if (!cuponGenerado) {
       const codigo = Math.floor(100 + Math.random() * 900); // 3 dígitos
